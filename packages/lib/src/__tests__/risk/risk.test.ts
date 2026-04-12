@@ -28,3 +28,32 @@ describe('applyCaps', () => {
     expect(Object.keys(kept)).toHaveLength(5);
   });
 });
+
+import { applySectorCaps } from '../../risk/portfolio.js';
+
+describe('applySectorCaps', () => {
+  it('limits tickers per sector', () => {
+    const desired = { AAPL: 0.9, MSFT: 0.8, NVDA: 0.7, JPM: 0.6, V: 0.5 };
+    const result = applySectorCaps(desired, 2, (t) => {
+      const map: Record<string, string> = { AAPL: 'IT', MSFT: 'IT', NVDA: 'IT', JPM: 'Fin', V: 'Fin' };
+      return map[t] ?? 'Unknown';
+    });
+    // IT has 3 tickers, cap at 2 → NVDA dropped (lowest score)
+    expect(Object.keys(result)).toHaveLength(4);
+    expect(result['NVDA']).toBeUndefined();
+    expect(result['AAPL']).toBeDefined();
+    expect(result['MSFT']).toBeDefined();
+  });
+
+  it('passes through when no sector exceeds limit', () => {
+    const desired = { AAPL: 0.9, JPM: 0.6 };
+    const result = applySectorCaps(desired, 2, () => 'Same');
+    expect(Object.keys(result)).toHaveLength(2);
+  });
+
+  it('passes through when maxPerSector is Infinity', () => {
+    const desired = { A: 1, B: 2, C: 3 };
+    const result = applySectorCaps(desired, Infinity, () => 'Same');
+    expect(Object.keys(result)).toHaveLength(3);
+  });
+});
