@@ -17,7 +17,7 @@ export function Toolbar({ isLoading, onRunBacktest, onRefresh }: ToolbarProps) {
 
   return (
     <div
-      className="flex items-center gap-4 px-3 py-1.5 border-b"
+      className="flex items-center gap-4 px-3 py-1 border-b"
       style={{ background: 'var(--bg-panel)', borderColor: 'var(--border)' }}
     >
       <button

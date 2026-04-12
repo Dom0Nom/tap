@@ -19,7 +19,7 @@ export function PanelFrame({ title, children, className, accentColor, isLive }: 
       }}
     >
       <div
-        className="flex items-center justify-between px-2.5 py-1.5"
+        className="flex items-center justify-between px-2 py-0.5"
         style={{
           background: 'var(--bg-panel-header)',
           borderBottom: '1px solid var(--border)',
@@ -41,7 +41,7 @@ export function PanelFrame({ title, children, className, accentColor, isLive }: 
           </span>
         )}
       </div>
-      <div className="flex-1 overflow-auto p-2.5 text-xs">
+      <div className="flex-1 overflow-auto p-1 text-xs">
         {children}
       </div>
     </div>

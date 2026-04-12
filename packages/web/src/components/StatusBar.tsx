@@ -32,7 +32,7 @@ export function StatusBar({ dataSource, isConnected }: StatusBarProps) {
 
   return (
     <div
-      className="flex items-center justify-between px-3 py-1.5 border-b"
+      className="flex items-center justify-between px-3 py-1 border-b"
       style={{ background: 'var(--bg-panel-header)', borderColor: 'var(--border)' }}
     >
       <div className="flex items-center gap-3">

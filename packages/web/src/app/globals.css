@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #080b0e;
-  --bg-panel: #0d1117;
-  --bg-panel-header: #161b22;
-  --border: #21262d;
+  --bg-primary: #000000;
+  --bg-panel: #050505;
+  --bg-panel-header: #0a0a0a;
+  --border: #151515;
   --border-focus: #388bfd30;
   --text-primary: #c9d1d9;
   --text-secondary: #8b949e;
@@ -17,8 +17,8 @@
 }
 
 body {
-  background: var(--bg-primary);
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  background: #000000;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.015'/%3E%3C/svg%3E");
   color: var(--text-primary);
 }
 

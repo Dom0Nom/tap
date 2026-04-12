@@ -5,6 +5,8 @@ import type { SignalRow } from '@/lib/demo-data';
 
 interface SignalHeatmapProps {
   signals: SignalRow[];
+  onTickerSelect?: (ticker: string) => void;
+  selectedTicker?: string;
 }
 
 function signalStyle(value: number): { bg: string; color: string } {
@@ -26,7 +28,7 @@ const COLUMNS: { key: keyof Omit<SignalRow, 'ticker'>; label: string }[] = [
   { key: 'composite', label: 'COMP' },
 ];
 
-export function SignalHeatmap({ signals }: SignalHeatmapProps) {
+export function SignalHeatmap({ signals, onTickerSelect, selectedTicker }: SignalHeatmapProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
 
   if (signals.length === 0) return <div style={{ color: 'var(--text-muted)' }}>No signals</div>;
@@ -63,7 +65,11 @@ export function SignalHeatmap({ signals }: SignalHeatmapProps) {
               onMouseEnter={() => setHoveredRow(row.ticker)}
               onMouseLeave={() => setHoveredRow(null)}
             >
-              <td className="font-[family-name:var(--font-mono)] pr-2" style={{ color: 'var(--text-primary)' }}>
+              <td
+                className="font-[family-name:var(--font-mono)] pr-2 cursor-pointer"
+                style={{ color: row.ticker === selectedTicker ? 'var(--accent-amber)' : 'var(--text-primary)' }}
+                onClick={() => onTickerSelect?.(row.ticker)}
+              >
                 {row.ticker}
               </td>
               {COLUMNS.map((col) => {

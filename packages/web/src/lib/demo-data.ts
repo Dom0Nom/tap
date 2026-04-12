@@ -8,13 +8,40 @@ import { combine } from '@tap/lib/strategy/scoring';
 import { fetchAlpacaBars } from '@tap/lib/data/alpaca-fetcher';
 import type { Position, Order } from '@tap/lib';
 
+interface OHLCVBar {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
 const TICKERS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOG', 'META', 'TSLA', 'JPM', 'V', 'UNH'];
 const ALL_TICKERS = [...TICKERS, 'SPY'];
+
+function closesToOHLCV(dates: string[], closes: number[]): OHLCVBar[] {
+  let seed = 42;
+  function seededRandom(): number {
+    seed = (seed * 16807 + 0) % 2147483647;
+    return seed / 2147483647;
+  }
+  return dates.map((date, i) => {
+    const close = closes[i];
+    const range = close * 0.015;
+    const open = close + (seededRandom() - 0.5) * range;
+    const high = Math.max(open, close) + seededRandom() * range * 0.5;
+    const low = Math.min(open, close) - seededRandom() * range * 0.5;
+    const volume = Math.floor(1_000_000 + seededRandom() * 5_000_000);
+    return { date, open, high, low, close, volume };
+  });
+}
 
 function generateSyntheticBars(): {
   dates: string[];
   barsWide: Record<string, number[]>;
   spy: number[];
+  ohlcv: Record<string, OHLCVBar[]>;
 } {
   const days = 500;
   const dates: string[] = [];
@@ -33,13 +60,19 @@ function generateSyntheticBars(): {
   }
   const spy = dates.map((_, i) => 100 + i * 0.2);
 
-  return { dates, barsWide, spy };
+  const ohlcv: Record<string, OHLCVBar[]> = {};
+  for (const ticker of TICKERS) {
+    ohlcv[ticker] = closesToOHLCV(dates, barsWide[ticker]);
+  }
+
+  return { dates, barsWide, spy, ohlcv };
 }
 
 async function fetchRealBars(): Promise<{
   dates: string[];
   barsWide: Record<string, number[]>;
   spy: number[];
+  ohlcv: Record<string, OHLCVBar[]>;
 } | null> {
   try {
     const end = new Date();
@@ -52,12 +85,11 @@ async function fetchRealBars(): Promise<{
     const bars = await fetchAlpacaBars(ALL_TICKERS, startStr, endStr);
     if (bars.length === 0) return null;
 
-    // Group bars by ticker then sort by date
-    const byTicker: Record<string, Map<string, number>> = {};
+    const byTicker: Record<string, Map<string, { close: number; open: number; high: number; low: number; volume: number }>> = {};
     const allDates = new Set<string>();
     for (const bar of bars) {
       if (!byTicker[bar.ticker]) byTicker[bar.ticker] = new Map();
-      byTicker[bar.ticker].set(bar.date, bar.close);
+      byTicker[bar.ticker].set(bar.date, { close: bar.close, open: bar.open, high: bar.high, low: bar.low, volume: bar.volume });
       allDates.add(bar.date);
     }
 
@@ -65,17 +97,24 @@ async function fetchRealBars(): Promise<{
     if (dates.length < 300) return null;
 
     const barsWide: Record<string, number[]> = {};
+    const ohlcv: Record<string, OHLCVBar[]> = {};
     for (const ticker of TICKERS) {
       const map = byTicker[ticker];
       if (!map) return null;
-      barsWide[ticker] = dates.map(d => map.get(d) ?? NaN);
+      barsWide[ticker] = dates.map(d => map.get(d)?.close ?? NaN);
+      ohlcv[ticker] = dates.map(d => {
+        const b = map.get(d);
+        return b
+          ? { date: d, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume }
+          : { date: d, open: NaN, high: NaN, low: NaN, close: NaN, volume: 0 };
+      });
     }
 
     const spyMap = byTicker['SPY'];
     if (!spyMap) return null;
-    const spy = dates.map(d => spyMap.get(d) ?? NaN);
+    const spy = dates.map(d => spyMap.get(d)?.close ?? NaN);
 
-    return { dates, barsWide, spy };
+    return { dates, barsWide, spy, ohlcv };
   } catch {
     return null;
   }
@@ -97,12 +136,14 @@ export interface DemoData {
   orders: Order[];
   tickers: string[];
   dataSource: 'alpaca' | 'synthetic';
+  bars: Record<string, OHLCVBar[]>;
 }
 
 function computeDashboardData(
   dates: string[],
   barsWide: Record<string, number[]>,
   spy: number[],
+  ohlcv: Record<string, OHLCVBar[]>,
   dataSource: 'alpaca' | 'synthetic',
 ): DemoData {
   const broker = new SimulatedBroker(100_000, 5);
@@ -181,6 +222,7 @@ function computeDashboardData(
     orders: sampleOrders,
     tickers: TICKERS,
     dataSource,
+    bars: ohlcv,
   };
 }
 
@@ -190,10 +232,10 @@ let fetchPromise: Promise<DemoData> | null = null;
 async function fetchAndCompute(): Promise<DemoData> {
   const real = await fetchRealBars();
   if (real) {
-    return computeDashboardData(real.dates, real.barsWide, real.spy, 'alpaca');
+    return computeDashboardData(real.dates, real.barsWide, real.spy, real.ohlcv, 'alpaca');
   }
-  const { dates, barsWide, spy } = generateSyntheticBars();
-  return computeDashboardData(dates, barsWide, spy, 'synthetic');
+  const { dates, barsWide, spy, ohlcv } = generateSyntheticBars();
+  return computeDashboardData(dates, barsWide, spy, ohlcv, 'synthetic');
 }
 
 export async function getDemoData(): Promise<DemoData> {

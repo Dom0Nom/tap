@@ -10,12 +10,14 @@ import { SignalHeatmap } from '@/components/SignalHeatmap';
 import { OrderBlotter } from '@/components/OrderBlotter';
 import { BacktestStats } from '@/components/BacktestStats';
 import { SystemLog } from '@/components/SystemLog';
+import { CandlestickChart } from '@/components/CandlestickChart';
 import type { DemoData } from '@/lib/demo-data';
 
 export default function Dashboard() {
   const [data, setData] = useState<DemoData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTicker, setSelectedTicker] = useState('AAPL');
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -60,7 +62,7 @@ export default function Dashboard() {
           <button
             onClick={fetchData}
             className="px-3 py-1 rounded-sm text-[11px] font-semibold uppercase tracking-wide"
-            style={{ background: 'var(--accent-blue)', color: '#080b0e' }}
+            style={{ background: 'var(--accent-blue)', color: '#000000' }}
           >
             Retry
           </button>
@@ -89,30 +91,56 @@ export default function Dashboard() {
     currentPrices[ticker] = pos.avgPrice * (1 + offset);
   }
 
+  const tickerBars = data.bars?.[selectedTicker] ?? [];
+
   return (
     <main className="h-screen flex flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
       <StatusBar dataSource={data.dataSource} isConnected={!error} />
       <Toolbar isLoading={isLoading} onRunBacktest={fetchData} onRefresh={fetchData} />
 
-      <div className="flex-1 grid gap-px p-px overflow-hidden" style={{
-        gridTemplateColumns: '2fr 1fr',
-        gridTemplateRows: '2fr 1.2fr auto',
+      {/* Ticker selector strip */}
+      <div className="flex items-center gap-0 border-b" style={{ borderColor: 'var(--border)', background: 'var(--bg-panel)' }}>
+        {data.tickers.map(ticker => (
+          <button
+            key={ticker}
+            onClick={() => setSelectedTicker(ticker)}
+            className="px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider font-[family-name:var(--font-barlow-condensed)] transition-colors"
+            style={{
+              color: ticker === selectedTicker ? 'var(--accent-amber)' : 'var(--text-muted)',
+              background: ticker === selectedTicker ? 'var(--bg-panel-header)' : 'transparent',
+              borderBottom: ticker === selectedTicker ? '1px solid var(--accent-amber)' : '1px solid transparent',
+            }}
+          >
+            {ticker}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 grid gap-px overflow-hidden" style={{
+        gridTemplateColumns: '3fr 1fr',
+        gridTemplateRows: 'minmax(350px, 1.5fr) 1fr auto',
         background: 'var(--bg-primary)',
       }}>
-        {/* Row 1: Equity Curve (hero) + Stats sidebar */}
-        <PanelFrame title="Equity Curve" accentColor="var(--accent-green)" isLive>
-          <EquityCurve data={data.equityCurve} />
+        {/* Row 1: Candlestick (hero) + Equity/Stats sidebar */}
+        <PanelFrame title={`${selectedTicker} — Daily`} accentColor="var(--accent-green)" isLive>
+          <CandlestickChart ticker={selectedTicker} bars={tickerBars} />
         </PanelFrame>
 
-        <PanelFrame title="Backtest Stats" accentColor="var(--accent-amber)">
-          <BacktestStats
-            metrics={data.metrics}
-            numTrades={data.numTrades}
-            numDays={data.equityCurve.length}
-          />
-        </PanelFrame>
+        <div className="grid gap-px" style={{ gridTemplateRows: '1fr 1fr' }}>
+          <PanelFrame title="Equity Curve" accentColor="var(--accent-cyan)">
+            <EquityCurve data={data.equityCurve} />
+          </PanelFrame>
 
-        {/* Row 2: Positions + Signals + Orders (3-col within 2-col parent) */}
+          <PanelFrame title="Backtest Stats" accentColor="var(--accent-amber)">
+            <BacktestStats
+              metrics={data.metrics}
+              numTrades={data.numTrades}
+              numDays={data.equityCurve.length}
+            />
+          </PanelFrame>
+        </div>
+
+        {/* Row 2: Positions + Signals + Orders */}
         <div className="grid gap-px overflow-hidden" style={{ gridTemplateColumns: '1fr 1.5fr', gridColumn: '1 / -1' }}>
           <PanelFrame title="Positions" accentColor="var(--accent-blue)">
             <PositionsGrid positions={data.positions} currentPrices={currentPrices} />
@@ -120,7 +148,7 @@ export default function Dashboard() {
 
           <div className="grid gap-px" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
             <PanelFrame title="Signal Heatmap" accentColor="var(--accent-cyan)">
-              <SignalHeatmap signals={data.signals} />
+              <SignalHeatmap signals={data.signals} onTickerSelect={setSelectedTicker} selectedTicker={selectedTicker} />
             </PanelFrame>
 
             <PanelFrame title="Order Blotter" accentColor="var(--accent-red)">
