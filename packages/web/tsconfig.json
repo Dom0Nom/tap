@@ -15,6 +15,9 @@
       ],
       "@tap/lib": [
         "../lib/src"
+      ],
+      "@tap/lib/*": [
+        "../lib/src/*"
       ]
     },
     "lib": [
