@@ -1,24 +1,62 @@
 #!/usr/bin/env tsx
+import { existsSync } from 'node:fs';
+import Database from 'better-sqlite3';
 import { SimulatedBroker } from '../broker/simulated.js';
 import { MomentumRSIStrategy } from '../strategy/momentum-rsi.js';
 import { createLedgerDB } from '../ledger/schema.js';
 import { LedgerRepo } from '../ledger/repo.js';
 
-const days = 500;
-const dates: string[] = [];
-const d = new Date('2022-01-03');
-for (let i = 0; i < days; i++) {
-  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
-  dates.push(d.toISOString().slice(0, 10));
-  d.setDate(d.getDate() + 1);
+function loadRealData(): { dates: string[]; barsWide: Record<string, number[]>; spy: number[]; tickers: string[] } | null {
+  const dbPath = 'data/bars.sqlite';
+  if (!existsSync(dbPath)) return null;
+
+  const db = new Database(dbPath);
+  const tickers = (db.prepare("SELECT DISTINCT ticker FROM bars WHERE ticker != 'SPY' ORDER BY ticker").all() as { ticker: string }[]).map(r => r.ticker);
+  const dates = (db.prepare('SELECT DISTINCT date FROM bars ORDER BY date').all() as { date: string }[]).map(r => r.date);
+
+  if (dates.length < 260 || tickers.length === 0) {
+    db.close();
+    return null;
+  }
+
+  const barsWide: Record<string, number[]> = {};
+  for (const t of [...tickers, 'SPY']) {
+    const rows = db.prepare('SELECT date, close FROM bars WHERE ticker = ? ORDER BY date').all(t) as { date: string; close: number }[];
+    const closeMap = new Map(rows.map(r => [r.date, r.close]));
+    barsWide[t] = dates.map(d => closeMap.get(d) ?? NaN);
+  }
+
+  const spy = barsWide['SPY'] ?? [];
+  delete barsWide['SPY'];
+
+  db.close();
+  return { dates, barsWide, spy, tickers };
 }
 
-const tickers = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOG'];
-const barsWide: Record<string, number[]> = {};
-for (const t of tickers) {
-  barsWide[t] = dates.map((_, i) => 100 * Math.exp(0.0003 * i + Math.sin(i * 0.1) * 0.02));
+function generateSyntheticData(): { dates: string[]; barsWide: Record<string, number[]>; spy: number[]; tickers: string[] } {
+  const days = 500;
+  const dates: string[] = [];
+  const d = new Date('2022-01-03');
+  for (let i = 0; i < days; i++) {
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+    dates.push(d.toISOString().slice(0, 10));
+    d.setDate(d.getDate() + 1);
+  }
+
+  const tickers = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOG'];
+  const barsWide: Record<string, number[]> = {};
+  for (const t of tickers) {
+    barsWide[t] = dates.map((_, i) => 100 * Math.exp(0.0003 * i + Math.sin(i * 0.1) * 0.02));
+  }
+  const spy = dates.map((_, i) => 100 + i * 0.2);
+
+  return { dates, barsWide, spy, tickers };
 }
-const spy = dates.map((_, i) => 100 + i * 0.2);
+
+const real = loadRealData();
+const { dates, barsWide, spy, tickers } = real ?? generateSyntheticData();
+const dataSource = real ? 'local-sqlite' : 'synthetic';
+console.log(`[run] Data source: ${dataSource}, ${tickers.length} tickers, ${dates.length} days`);
 
 const broker = new SimulatedBroker(100_000, 5);
 broker.loadBars(dates, barsWide, barsWide);
@@ -33,7 +71,7 @@ const ledger = new LedgerRepo(db);
 
 const asOf = dates[dates.length - 1];
 const now = new Date().toISOString();
-const runId = ledger.startRun('paper-live', 'demo', now);
+const runId = ledger.startRun('paper-live', dataSource, now);
 
 try {
   const portfolio = broker.getPortfolio();

@@ -10,6 +10,7 @@ import { SignalHeatmap } from '@/components/SignalHeatmap';
 import { OrderBlotter } from '@/components/OrderBlotter';
 import { BacktestStats } from '@/components/BacktestStats';
 import { SystemLog } from '@/components/SystemLog';
+import { ScriptsPanel } from '@/components/ScriptsPanel';
 import { CandlestickChart } from '@/components/CandlestickChart';
 import type { DemoData } from '@/lib/demo-data';
 
@@ -157,10 +158,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Row 3: System log full width */}
-        <div style={{ gridColumn: '1 / -1' }}>
+        {/* Row 3: System log + Scripts panel */}
+        <div className="grid gap-px" style={{ gridColumn: '1 / -1', gridTemplateColumns: '2fr 1fr' }}>
           <PanelFrame title="System Log" accentColor="var(--text-muted)">
             <SystemLog />
+          </PanelFrame>
+          <PanelFrame title="Scripts" accentColor="var(--accent-amber)">
+            <ScriptsPanel />
           </PanelFrame>
         </div>
       </div>
