@@ -7,6 +7,7 @@ const SCRIPTS: Record<string, { name: string; description: string; script: strin
   'sync-bars': { name: 'Sync Bars', description: 'Fetch latest bars from Alpaca', script: 'sync-bars.ts' },
   'run-signals': { name: 'Run Signals', description: 'Compute signals from local data', script: 'run-signals.ts' },
   'run-backtest': { name: 'Run Backtest', description: 'Full backtest on local bars', script: 'run-backtest.ts' },
+  'paper-trade': { name: 'Paper Trade', description: 'Submit orders to Alpaca paper', script: 'paper-trade.ts' },
 };
 
 function findProjectRoot(): string {

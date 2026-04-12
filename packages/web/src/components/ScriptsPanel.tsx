@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface ScriptDef {
   id: string;
@@ -12,19 +12,26 @@ const SCRIPTS: ScriptDef[] = [
   { id: 'sync-bars', name: 'SYNC BARS', description: 'Fetch latest from Alpaca' },
   { id: 'run-signals', name: 'RUN SIGNALS', description: 'Compute current signals' },
   { id: 'run-backtest', name: 'RUN BACKTEST', description: 'Full backtest on local data' },
+  { id: 'paper-trade', name: 'PAPER TRADE', description: 'Submit real orders to Alpaca paper' },
 ];
 
 type ScriptStatus = 'idle' | 'running' | 'success' | 'failed';
 
 export function ScriptsPanel() {
   const [statuses, setStatuses] = useState<Record<string, ScriptStatus>>({});
-  const [output, setOutput] = useState<string>('');
-  const [activeScript, setActiveScript] = useState<string | null>(null);
+  const [log, setLog] = useState<string>('');
+  const outputRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (outputRef.current) {
+      outputRef.current.scrollTop = outputRef.current.scrollHeight;
+    }
+  }, [log]);
 
   async function runScript(id: string) {
     setStatuses(prev => ({ ...prev, [id]: 'running' }));
-    setActiveScript(id);
-    setOutput(`Running ${id}...`);
+    const timestamp = new Date().toLocaleTimeString();
+    setLog(prev => `${prev}[${timestamp}] === ${id} ===\n`);
 
     try {
       const res = await fetch('/api/scripts', {
@@ -33,11 +40,12 @@ export function ScriptsPanel() {
         body: JSON.stringify({ scriptId: id }),
       });
       const data = await res.json();
-      setOutput(data.output || 'No output');
+      const result = data.output || 'No output';
+      setLog(prev => `${prev}${result}\n`);
       setStatuses(prev => ({ ...prev, [id]: data.success ? 'success' : 'failed' }));
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      setOutput(`Error: ${message}`);
+      setLog(prev => `${prev}Error: ${message}\n`);
       setStatuses(prev => ({ ...prev, [id]: 'failed' }));
     }
   }
@@ -46,7 +54,7 @@ export function ScriptsPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="space-y-1 mb-2">
+      <div className="space-y-1 mb-2 shrink-0">
         {SCRIPTS.map(s => (
           <div key={s.id} className="flex items-center gap-2 px-1">
             <button
@@ -81,6 +89,7 @@ export function ScriptsPanel() {
         ))}
       </div>
       <div
+        ref={outputRef}
         className="flex-1 overflow-auto rounded-sm p-1"
         style={{
           background: 'rgba(0,0,0,0.5)',
@@ -91,7 +100,7 @@ export function ScriptsPanel() {
           className="text-[10px] font-mono whitespace-pre-wrap"
           style={{ color: 'var(--text-secondary)' }}
         >
-          {output || 'No script output yet. Click \u25B6 to run a script.'}
+          {log || 'No script output yet. Click \u25B6 to run a script.'}
         </pre>
       </div>
     </div>
