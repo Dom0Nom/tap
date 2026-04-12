@@ -1,22 +1,23 @@
+'use client';
+
+import { useState } from 'react';
 import type { SignalRow } from '@/lib/demo-data';
 
 interface SignalHeatmapProps {
   signals: SignalRow[];
 }
 
-function signalColor(value: number): string {
-  if (value > 0.3) return '#00ff41';
-  if (value > 0.1) return '#007722';
-  if (value > 0.01) return '#003311';
-  if (value < -0.3) return '#ff3333';
-  if (value < -0.1) return '#772200';
-  if (value < -0.01) return '#331100';
-  return '#1a1a2e';
-}
-
-function textColor(value: number): string {
-  if (Math.abs(value) > 0.1) return '#e0e0e0';
-  return '#555';
+function signalStyle(value: number): { bg: string; color: string } {
+  const abs = Math.abs(value);
+  if (value > 0) {
+    const opacity = Math.min(abs * 2, 0.6);
+    return { bg: `rgba(63,185,80,${opacity})`, color: abs > 0.1 ? 'var(--text-primary)' : 'var(--text-secondary)' };
+  }
+  if (value < 0) {
+    const opacity = Math.min(abs * 2, 0.6);
+    return { bg: `rgba(248,81,73,${opacity})`, color: abs > 0.1 ? 'var(--text-primary)' : 'var(--text-secondary)' };
+  }
+  return { bg: 'transparent', color: 'var(--text-muted)' };
 }
 
 const COLUMNS: { key: keyof Omit<SignalRow, 'ticker'>; label: string }[] = [
@@ -26,36 +27,61 @@ const COLUMNS: { key: keyof Omit<SignalRow, 'ticker'>; label: string }[] = [
 ];
 
 export function SignalHeatmap({ signals }: SignalHeatmapProps) {
-  if (signals.length === 0) return <div className="text-[#555]">No signals</div>;
+  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+
+  if (signals.length === 0) return <div style={{ color: 'var(--text-muted)' }}>No signals</div>;
 
   return (
-    <table className="w-full text-[11px]">
+    <table className="w-full text-[11px] border-collapse">
       <thead>
-        <tr className="text-[#888]">
-          <th className="pb-1 font-normal text-left">TICKER</th>
+        <tr>
+          <th
+            className="pb-1.5 font-[family-name:var(--font-barlow-condensed)] font-semibold text-[10px] tracking-wider uppercase text-left"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            TICKER
+          </th>
           {COLUMNS.map((col) => (
-            <th key={col.key} className="pb-1 font-normal text-center">{col.label}</th>
+            <th
+              key={col.key}
+              className="pb-1.5 font-[family-name:var(--font-barlow-condensed)] font-semibold text-[10px] tracking-wider uppercase text-center cursor-default"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {col.label} <span style={{ color: 'var(--border)' }}>&#9662;</span>
+            </th>
           ))}
         </tr>
       </thead>
       <tbody>
-        {signals.map((row) => (
-          <tr key={row.ticker} className="h-6">
-            <td className="font-mono text-[#e0e0e0] pr-2">{row.ticker}</td>
-            {COLUMNS.map((col) => {
-              const val = row[col.key];
-              return (
-                <td
-                  key={col.key}
-                  className="text-center font-mono tabular-nums px-1"
-                  style={{ backgroundColor: signalColor(val), color: textColor(val) }}
-                >
-                  {val.toFixed(3)}
-                </td>
-              );
-            })}
-          </tr>
-        ))}
+        {signals.map((row) => {
+          const isHovered = hoveredRow === row.ticker;
+          return (
+            <tr
+              key={row.ticker}
+              className="h-6 transition-colors"
+              style={{ background: isHovered ? 'rgba(255,255,255,0.03)' : 'transparent' }}
+              onMouseEnter={() => setHoveredRow(row.ticker)}
+              onMouseLeave={() => setHoveredRow(null)}
+            >
+              <td className="font-[family-name:var(--font-mono)] pr-2" style={{ color: 'var(--text-primary)' }}>
+                {row.ticker}
+              </td>
+              {COLUMNS.map((col) => {
+                const val = row[col.key];
+                const style = signalStyle(val);
+                return (
+                  <td
+                    key={col.key}
+                    className="text-center font-[family-name:var(--font-mono)] tabular-nums px-1.5 py-0.5"
+                    style={{ background: style.bg, color: style.color, borderRadius: '1px' }}
+                  >
+                    {val.toFixed(3)}
+                  </td>
+                );
+              })}
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
