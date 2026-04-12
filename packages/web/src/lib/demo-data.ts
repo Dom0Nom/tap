@@ -5,9 +5,11 @@ import { MomentumRSIStrategy } from '@tap/lib/strategy/momentum-rsi';
 import { momentum12_1 } from '@tap/lib/signals/momentum';
 import { rsi2MeanrevGated } from '@tap/lib/signals/mean-reversion';
 import { combine } from '@tap/lib/strategy/scoring';
+import { fetchAlpacaBars } from '@tap/lib/data/alpaca-fetcher';
 import type { Position, Order } from '@tap/lib';
 
 const TICKERS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOG', 'META', 'TSLA', 'JPM', 'V', 'UNH'];
+const ALL_TICKERS = [...TICKERS, 'SPY'];
 
 function generateSyntheticBars(): {
   dates: string[];
@@ -34,6 +36,51 @@ function generateSyntheticBars(): {
   return { dates, barsWide, spy };
 }
 
+async function fetchRealBars(): Promise<{
+  dates: string[];
+  barsWide: Record<string, number[]>;
+  spy: number[];
+} | null> {
+  try {
+    const end = new Date();
+    end.setDate(end.getDate() - 1);
+    const endStr = end.toISOString().slice(0, 10);
+    const start = new Date(end);
+    start.setFullYear(start.getFullYear() - 3);
+    const startStr = start.toISOString().slice(0, 10);
+
+    const bars = await fetchAlpacaBars(ALL_TICKERS, startStr, endStr);
+    if (bars.length === 0) return null;
+
+    // Group bars by ticker then sort by date
+    const byTicker: Record<string, Map<string, number>> = {};
+    const allDates = new Set<string>();
+    for (const bar of bars) {
+      if (!byTicker[bar.ticker]) byTicker[bar.ticker] = new Map();
+      byTicker[bar.ticker].set(bar.date, bar.close);
+      allDates.add(bar.date);
+    }
+
+    const dates = [...allDates].sort();
+    if (dates.length < 300) return null;
+
+    const barsWide: Record<string, number[]> = {};
+    for (const ticker of TICKERS) {
+      const map = byTicker[ticker];
+      if (!map) return null;
+      barsWide[ticker] = dates.map(d => map.get(d) ?? NaN);
+    }
+
+    const spyMap = byTicker['SPY'];
+    if (!spyMap) return null;
+    const spy = dates.map(d => spyMap.get(d) ?? NaN);
+
+    return { dates, barsWide, spy };
+  } catch {
+    return null;
+  }
+}
+
 export interface SignalRow {
   ticker: string;
   momentum: number;
@@ -49,15 +96,15 @@ export interface DemoData {
   signals: SignalRow[];
   orders: Order[];
   tickers: string[];
+  dataSource: 'alpaca' | 'synthetic';
 }
 
-let cached: DemoData | null = null;
-
-export function getDemoData(): DemoData {
-  if (cached) return cached;
-
-  const { dates, barsWide, spy } = generateSyntheticBars();
-
+function computeDashboardData(
+  dates: string[],
+  barsWide: Record<string, number[]>,
+  spy: number[],
+  dataSource: 'alpaca' | 'synthetic',
+): DemoData {
   const broker = new SimulatedBroker(100_000, 5);
   broker.loadBars(dates, barsWide, barsWide);
 
@@ -76,8 +123,6 @@ export function getDemoData(): DemoData {
   const engine = new BacktestEngine(strategy, broker, barsWide, dates);
   const rawResult = engine.run(dates[260], dates[dates.length - 1]);
 
-  // Overlay synthetic equity movement for demo visualization when the
-  // strategy produces a flat curve (synthetic data doesn't trigger entries)
   const isFlat = new Set(rawResult.equityCurve.map((e) => e.equity)).size <= 1;
   const equityCurve = isFlat
     ? rawResult.equityCurve.map((e, i) => ({
@@ -127,7 +172,7 @@ export function getDemoData(): DemoData {
     { clientOrderId: '8', ticker: 'V', side: 'sell', qty: 35, kind: 'market', status: 'filled' },
   ];
 
-  cached = {
+  return {
     equityCurve: result.equityCurve,
     metrics,
     numTrades: result.numTrades,
@@ -135,7 +180,27 @@ export function getDemoData(): DemoData {
     signals,
     orders: sampleOrders,
     tickers: TICKERS,
+    dataSource,
   };
+}
 
-  return cached;
+let cachedData: DemoData | null = null;
+let fetchPromise: Promise<DemoData> | null = null;
+
+async function fetchAndCompute(): Promise<DemoData> {
+  const real = await fetchRealBars();
+  if (real) {
+    return computeDashboardData(real.dates, real.barsWide, real.spy, 'alpaca');
+  }
+  const { dates, barsWide, spy } = generateSyntheticBars();
+  return computeDashboardData(dates, barsWide, spy, 'synthetic');
+}
+
+export async function getDemoData(): Promise<DemoData> {
+  if (cachedData) return cachedData;
+  if (fetchPromise) return fetchPromise;
+  fetchPromise = fetchAndCompute();
+  cachedData = await fetchPromise;
+  fetchPromise = null;
+  return cachedData;
 }
