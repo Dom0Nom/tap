@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { volTargetShares } from '../../risk/sizing.js';
+import { volTargetShares, correlationAdjustedSize } from '../../risk/sizing.js';
 import { volStopPrice } from '../../risk/stops.js';
 import { applyCaps } from '../../risk/portfolio.js';
 
@@ -30,6 +30,28 @@ describe('applyCaps', () => {
 });
 
 import { applySectorCaps } from '../../risk/portfolio.js';
+
+describe('correlationAdjustedSize', () => {
+  it('reduces size for highly correlated positions', () => {
+    // Same data = correlation ~1.0
+    const closes = Array.from({ length: 70 }, (_, i) => 100 + i * 0.5);
+    const result = correlationAdjustedSize(100, closes, [closes], 60, 0.7);
+    expect(result).toBeLessThan(100);
+    expect(result).toBeGreaterThan(0);
+  });
+
+  it('preserves size for empty portfolio', () => {
+    const closes = Array.from({ length: 70 }, (_, i) => 100 + i);
+    expect(correlationAdjustedSize(100, closes, [], 60, 0.7)).toBe(100);
+  });
+
+  it('preserves size for uncorrelated positions', () => {
+    const a = Array.from({ length: 70 }, (_, i) => 100 + Math.sin(i) * 10);
+    const b = Array.from({ length: 70 }, (_, i) => 100 + Math.cos(i * 3) * 10);
+    const result = correlationAdjustedSize(100, a, [b], 60, 0.7);
+    expect(result).toBe(100);
+  });
+});
 
 describe('applySectorCaps', () => {
   it('limits tickers per sector', () => {

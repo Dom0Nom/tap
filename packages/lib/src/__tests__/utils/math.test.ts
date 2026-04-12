@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pctChange, rollingMean, rollingStd, cumMax, mean, std, clip, dropNaN, tail } from '../../utils/math.js';
+import { pctChange, rollingMean, rollingStd, cumMax, mean, std, clip, dropNaN, tail, correlation } from '../../utils/math.js';
 
 describe('pctChange', () => {
   it('computes percentage changes', () => {
@@ -76,5 +76,22 @@ describe('tail', () => {
 describe('dropNaN', () => {
   it('removes NaN values', () => {
     expect(dropNaN([1, NaN, 3, NaN, 5])).toEqual([1, 3, 5]);
+  });
+});
+
+describe('correlation', () => {
+  it('returns ~1 for identical series', () => {
+    const a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    expect(correlation(a, a)).toBeCloseTo(1.0);
+  });
+
+  it('returns ~-1 for inverted series', () => {
+    const a = [1, 2, 3, 4, 5];
+    const b = [5, 4, 3, 2, 1];
+    expect(correlation(a, b)).toBeCloseTo(-1.0);
+  });
+
+  it('returns 0 for insufficient data', () => {
+    expect(correlation([1], [2])).toBe(0);
   });
 });

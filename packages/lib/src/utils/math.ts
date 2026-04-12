@@ -63,3 +63,22 @@ export function clip(value: number, min: number, max: number): number {
 export function dropNaN(arr: number[]): number[] {
   return arr.filter(v => !isNaN(v));
 }
+
+export function correlation(a: number[], b: number[]): number {
+  const n = Math.min(a.length, b.length);
+  if (n < 3) return 0;
+  const aSlice = a.slice(-n);
+  const bSlice = b.slice(-n);
+  const meanA = aSlice.reduce((s, v) => s + v, 0) / n;
+  const meanB = bSlice.reduce((s, v) => s + v, 0) / n;
+  let num = 0, denA = 0, denB = 0;
+  for (let i = 0; i < n; i++) {
+    const da = aSlice[i] - meanA;
+    const db = bSlice[i] - meanB;
+    num += da * db;
+    denA += da * da;
+    denB += db * db;
+  }
+  const den = Math.sqrt(denA * denB);
+  return den === 0 ? 0 : num / den;
+}
