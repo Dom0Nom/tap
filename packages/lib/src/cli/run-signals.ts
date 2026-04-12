@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import Database from 'better-sqlite3';
-import { momentum12_1 } from '../signals/momentum.js';
+import { blendedMomentum } from '../signals/momentum.js';
 import { rsi2MeanrevGated } from '../signals/mean-reversion.js';
 import { combine } from '../strategy/scoring.js';
 
@@ -27,7 +27,7 @@ function main(): void {
 
   console.log(`[signals] Computing signals as of ${asOf} for ${tickers.length} tickers\n`);
 
-  const mom = momentum12_1(barsWide, dates, asOf);
+  const mom = blendedMomentum(barsWide, dates, asOf);
   const nonSpyWide = Object.fromEntries(Object.entries(barsWide).filter(([k]) => k !== 'SPY'));
   const mr = rsi2MeanrevGated(nonSpyWide, dates, asOf, spyCloses);
   const scored = combine(

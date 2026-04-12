@@ -2,7 +2,7 @@ import { BacktestEngine } from '@tap/lib/backtest/engine';
 import { summarize, type BacktestMetrics } from '@tap/lib/backtest/metrics';
 import { SimulatedBroker } from '@tap/lib/broker/simulated';
 import { MomentumRSIStrategy } from '@tap/lib/strategy/momentum-rsi';
-import { momentum12_1 } from '@tap/lib/signals/momentum';
+import { blendedMomentum } from '@tap/lib/signals/momentum';
 import { rsi2MeanrevGated } from '@tap/lib/signals/mean-reversion';
 import { combine } from '@tap/lib/strategy/scoring';
 import { fetchAlpacaBars } from '@tap/lib/data/alpaca-fetcher';
@@ -157,6 +157,10 @@ function computeDashboardData(
       breakoutMargin: 0.15,
       targetRisk: 0.01,
       stopAtrMultiple: 2,
+      momentumMode: 'blended',
+      maxPerSector: 2,
+      qualityThreshold: 0.2,
+      correlationThreshold: 0.7,
     },
     spy,
   );
@@ -176,7 +180,7 @@ function computeDashboardData(
   const metrics = summarize(result.equityCurve);
 
   const lastDate = dates[dates.length - 1];
-  const mom = momentum12_1(barsWide, dates, lastDate);
+  const mom = blendedMomentum(barsWide, dates, lastDate);
   const mr = rsi2MeanrevGated(barsWide, dates, lastDate, spy);
   const composite = combine(
     { momentum: mom, mean_reversion: mr, sentiment: {} },
