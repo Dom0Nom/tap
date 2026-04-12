@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { momentum12_1 } from '../../signals/momentum.js';
+import { momentum12_1, momentum6_1, momentum9_1, blendedMomentum } from '../../signals/momentum.js';
 
 function synthTrend(tickers: string[], days: number, slopes: Record<string, number>) {
   const dates: string[] = [];
@@ -37,6 +37,43 @@ describe('momentum12_1', () => {
   it('returns empty if insufficient history', () => {
     const { dates, barsWide } = synthTrend(['A'], 100, { A: 0.001 });
     const sig = momentum12_1(barsWide, dates, dates[dates.length - 1]);
+    expect(Object.keys(sig)).toHaveLength(0);
+  });
+});
+
+describe('momentum6_1', () => {
+  it('ranks higher slope higher with 200 days', () => {
+    const { dates, barsWide } = synthTrend(['A', 'B', 'C'], 200, { A: 0.001, B: 0, C: -0.001 });
+    const sig = momentum6_1(barsWide, dates, dates[dates.length - 1]);
+    expect(sig['A']).toBeGreaterThan(sig['B']);
+    expect(sig['B']).toBeGreaterThan(sig['C']);
+  });
+});
+
+describe('momentum9_1', () => {
+  it('ranks higher slope higher with 250 days', () => {
+    const { dates, barsWide } = synthTrend(['A', 'B', 'C'], 250, { A: 0.001, B: 0, C: -0.001 });
+    const sig = momentum9_1(barsWide, dates, dates[dates.length - 1]);
+    expect(sig['A']).toBeGreaterThan(sig['B']);
+  });
+});
+
+describe('blendedMomentum', () => {
+  it('returns values when all three available', () => {
+    const { dates, barsWide } = synthTrend(['A', 'B'], 300, { A: 0.001, B: -0.001 });
+    const sig = blendedMomentum(barsWide, dates, dates[dates.length - 1]);
+    expect(sig['A']).toBeGreaterThan(sig['B']);
+  });
+
+  it('degrades gracefully with short history (only 6-1 available)', () => {
+    const { dates, barsWide } = synthTrend(['A'], 160, { A: 0.001 });
+    const sig = blendedMomentum(barsWide, dates, dates[dates.length - 1]);
+    expect(sig['A']).toBeGreaterThan(0);
+  });
+
+  it('returns empty with insufficient history', () => {
+    const { dates, barsWide } = synthTrend(['A'], 100, { A: 0.001 });
+    const sig = blendedMomentum(barsWide, dates, dates[dates.length - 1]);
     expect(Object.keys(sig)).toHaveLength(0);
   });
 });
