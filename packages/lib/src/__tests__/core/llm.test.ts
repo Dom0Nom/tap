@@ -21,12 +21,8 @@ describe('LLMClient', () => {
   it('retries then throws', async () => {
     const dir = join(tmpdir(), `tap-llm-${Date.now()}`);
     mkdirSync(dir, { recursive: true });
-    // Use a zero-delay subclass to avoid real or fake timer complexity
-    class FastLLMClient extends LLMClient {
-      // Override to remove backoff delay
-    }
     const sdk: SDKLike = { classify: vi.fn().mockImplementation(() => Promise.reject(new Error('boom'))) };
-    // Patch setTimeout to be instant for this test
+    // make retry backoff instant
     const origSetTimeout = globalThis.setTimeout;
     // @ts-expect-error patching global
     globalThis.setTimeout = (fn: () => void) => origSetTimeout(fn, 0);

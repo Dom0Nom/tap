@@ -99,7 +99,6 @@ export default function Dashboard() {
       <StatusBar dataSource={data.dataSource} isConnected={!error} />
       <Toolbar isLoading={isLoading} onRunBacktest={fetchData} onRefresh={fetchData} />
 
-      {/* Ticker selector strip */}
       <div className="flex items-center gap-0 border-b" style={{ borderColor: 'var(--border)', background: 'var(--bg-panel)' }}>
         {data.tickers.map(ticker => (
           <button
@@ -122,7 +121,6 @@ export default function Dashboard() {
         gridTemplateRows: 'minmax(350px, 1.5fr) 1fr auto',
         background: 'var(--bg-primary)',
       }}>
-        {/* Row 1: Candlestick (hero) + Equity/Stats sidebar */}
         <PanelFrame title={`${selectedTicker} — Daily`} accentColor="var(--accent-green)" isLive>
           <CandlestickChart ticker={selectedTicker} bars={tickerBars} />
         </PanelFrame>
@@ -141,7 +139,6 @@ export default function Dashboard() {
           </PanelFrame>
         </div>
 
-        {/* Row 2: Positions + Signals + Orders */}
         <div className="grid gap-px overflow-hidden" style={{ gridTemplateColumns: '1fr 1.5fr', gridColumn: '1 / -1' }}>
           <PanelFrame title="Positions" accentColor="var(--accent-blue)">
             <PositionsGrid positions={data.positions} currentPrices={currentPrices} />
@@ -158,7 +155,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Row 3: System log + Scripts panel */}
         <div className="grid gap-px" style={{ gridColumn: '1 / -1', gridTemplateColumns: '2fr 1fr' }}>
           <PanelFrame title="System Log" accentColor="var(--text-muted)">
             <SystemLog />

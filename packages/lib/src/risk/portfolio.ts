@@ -12,7 +12,6 @@ export function applySectorCaps(
 ): Record<string, number> {
   if (maxPerSector === Infinity || maxPerSector <= 0) return { ...desired };
 
-  // Group by sector
   const bySector = new Map<string, [string, number][]>();
   for (const [ticker, score] of Object.entries(desired)) {
     const sector = sectorFn(ticker);
@@ -20,7 +19,6 @@ export function applySectorCaps(
     bySector.get(sector)!.push([ticker, score]);
   }
 
-  // Within each sector, keep only top N by score
   const result: Record<string, number> = {};
   for (const [, tickers] of bySector) {
     const sorted = tickers.sort((a, b) => b[1] - a[1]);

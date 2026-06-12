@@ -23,7 +23,6 @@ describe('volScaleFactor', () => {
   });
 
   it('clamps to [0.5, 2.0]', () => {
-    // Extreme high vol
     const extreme = Array.from({ length: 130 }, (_, i) => (i % 2 === 0 ? 0.1 : -0.1));
     expect(volScaleFactor(extreme, 0.01, 126)).toBe(0.5);
   });

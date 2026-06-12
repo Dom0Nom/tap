@@ -30,7 +30,6 @@ export class BarStore {
       'INSERT OR IGNORE INTO bars (ticker, date, open, high, low, close, volume) VALUES (?, ?, ?, ?, ?, ?, ?)'
     );
 
-    // Find the earliest missing start across all tickers
     let missingStart: string | null = null;
     for (const t of tickers) {
       const row = this.db.prepare('SELECT MAX(date) as maxDate FROM bars WHERE ticker = ?').get(t) as { maxDate: string | null } | undefined;
@@ -45,7 +44,6 @@ export class BarStore {
 
     const fetched = this.fetcher(tickers, missingStart, end);
     if (fetched.length === 0) {
-      // Check staleness
       for (const t of tickers) {
         const row = this.db.prepare('SELECT MAX(date) as maxDate FROM bars WHERE ticker = ?').get(t) as { maxDate: string | null } | undefined;
         if (!row?.maxDate || row.maxDate < this._daysAgo(end, 5)) {

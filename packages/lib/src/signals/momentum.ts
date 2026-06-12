@@ -1,7 +1,6 @@
 import { register } from './registry.js';
 
 function momentum12_1(barsWide: Record<string, number[]>, dates: string[], asOf: string): Record<string, number> {
-  // Filter to dates <= asOf
   const cutoff = dates.findIndex(d => d > asOf);
   const endIdx = cutoff === -1 ? dates.length : cutoff;
 

@@ -45,7 +45,6 @@ export class MomentumRSIStrategy {
     const cutoff = dates.findIndex(d => d > asOf);
     const endIdx = cutoff === -1 ? dates.length : cutoff;
 
-    // Exits (every day)
     for (const [ticker, pos] of Object.entries(portfolio.positions)) {
       if (!barsWide[ticker]) continue;
       const px = barsWide[ticker][endIdx - 1];
@@ -57,7 +56,6 @@ export class MomentumRSIStrategy {
       }
     }
 
-    // Entries gated by cadence
     const isRebalanceDay = this.isFirstTradingDayOfMonth(asOf, dates, endIdx);
 
     const mom = (this.cfg.momentumMode ?? 'blended') === 'blended'
@@ -90,7 +88,6 @@ export class MomentumRSIStrategy {
     this.lastCutoffScore = cutoffScore;
     this.lastRebalanceTickers = new Set(candidates.map(([t]) => t));
 
-    // Apply caps
     const candidateMap = Object.fromEntries(candidates);
     const capped = applyCaps(candidateMap, this.cfg.maxPositions);
 
@@ -158,7 +155,7 @@ export class MomentumRSIStrategy {
   private isFirstTradingDayOfMonth(asOf: string, dates: string[], endIdx: number): boolean {
     const hist = dates.slice(0, endIdx);
     if (hist.length === 0 || hist[hist.length - 1] !== asOf) return false;
-    const month = asOf.slice(0, 7); // YYYY-MM
+    const month = asOf.slice(0, 7);
     const monthDates = hist.filter(d => d.startsWith(month));
     return monthDates.length === 1;
   }
