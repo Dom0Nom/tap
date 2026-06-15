@@ -22,3 +22,7 @@ pnpm dev            # start the dashboard
 ```
 
 Live data requires Alpaca paper-trading keys in `~/.tap/secrets.env` (`ALPACA_KEY_ID`, `ALPACA_SECRET_KEY`); the backtest runs against cached bars.
+
+## Disclaimer
+
+Personal learning project. **Paper trading only** — it does not place real-money orders, and nothing here is financial advice. Backtests are historical simulations and not indicative of future results. Provided as-is, no warranty.
