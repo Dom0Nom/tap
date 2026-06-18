@@ -8,8 +8,8 @@ Monthly-rebalanced cross-sectional momentum (blended 6-1/9-1/12-1) with an RSI(2
 
 ## Packages
 
-- `packages/lib` — signals, risk, strategy, backtest engine, SQLite bar store, Alpaca market data + paper trading, CLI
-- `packages/web` — Next.js dashboard: candlestick chart, equity curve, signal heatmap, positions, order blotter
+- `packages/lib`: signals, risk, strategy, backtest engine, SQLite bar store, Alpaca market data + paper trading, CLI
+- `packages/web`: Next.js dashboard with a candlestick chart, equity curve, signal heatmap, positions, and order blotter
 
 ## Usage
 
@@ -25,4 +25,4 @@ Live data requires Alpaca paper-trading keys in `~/.tap/secrets.env` (`ALPACA_KE
 
 ## Disclaimer
 
-Personal learning project. **Paper trading only** — it does not place real-money orders, and nothing here is financial advice. Backtests are historical simulations and not indicative of future results. Provided as-is, no warranty.
+Personal learning project. **Paper trading only.** It does not place real-money orders, and nothing here is financial advice. Backtests are historical simulations and not indicative of future results. Provided as-is, no warranty.
